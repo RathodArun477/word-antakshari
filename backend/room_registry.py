@@ -15,12 +15,16 @@ import redis
 from game.state import GameRoom, generate_room_code
 
 try:
-    _redis_client = redis.Redis(
-        host=os.environ.get("REDIS_HOST", "localhost"),
-        port=int(os.environ.get("REDIS_PORT", 6379)),
-        decode_responses=True,
-        socket_connect_timeout=2,  # Fail fast if no Redis running
-    )
+    redis_url = os.environ.get("REDIS_URL")
+    if redis_url:
+        _redis_client = redis.from_url(redis_url, decode_responses=True, socket_connect_timeout=2)
+    else:
+        _redis_client = redis.Redis(
+            host=os.environ.get("REDIS_HOST", "localhost"),
+            port=int(os.environ.get("REDIS_PORT", 6379)),
+            decode_responses=True,
+            socket_connect_timeout=2,
+        )
     _redis_client.ping()
 except Exception:
     import fakeredis
