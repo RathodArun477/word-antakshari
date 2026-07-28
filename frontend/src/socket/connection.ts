@@ -3,7 +3,7 @@ import { io, Socket } from "socket.io-client";
 // Points at your local Flask-SocketIO backend during development.
 // Change this when deploying, but for now this matches app.py running
 // on port 5000.
-const BACKEND_URL = "http://localhost:5000";
+const BACKEND_URL = "https://word-antakshari.onrender.com";
 
 export const socket: Socket = io(BACKEND_URL, {
   autoConnect: false, // we connect explicitly, not immediately on import
