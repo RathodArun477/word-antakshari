@@ -4,27 +4,31 @@
 :root {
   font-family: 'Plus Jakarta Sans', 'Outfit', system-ui, sans-serif;
   color-scheme: dark;
-  background-color: #08090d; /* Premium deep slate-obsidian */
+  background-color: #08090d;
+  /* Premium deep slate-obsidian */
 }
 
 body {
   margin: 0;
   min-height: 100vh;
   background-color: #08090d;
-  color: #f4f4f5; /* zinc-100 */
+  color: #f4f4f5;
+  /* zinc-100 */
   overflow-x: hidden;
   letter-spacing: -0.01em;
 }
 
 /* Premium Attractive Cards */
 .glass-panel {
-  background-color: #0f111a; /* graphite panel */
-  border: 1px solid #1e2230; /* thin graphite border */
+  background-color: #0f111a;
+  /* graphite panel */
+  border: 1px solid #1e2230;
+  /* thin graphite border */
   border-radius: 16px;
   box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
-  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
-              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
-              transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: border-color 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+    transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .glass-panel:hover {
@@ -43,14 +47,16 @@ body {
 
 .glass-input:focus {
   background-color: #08090d;
-  border-color: #6366f1; /* indigo accent */
+  border-color: #6366f1;
+  /* indigo accent */
   outline: none;
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
 /* Premium Primary Button with Gradient */
 .glass-button {
-  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); /* indigo-violet gradient */
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  /* indigo-violet gradient */
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #ffffff;
   font-weight: 600;
@@ -71,7 +77,8 @@ body {
 .glass-button:disabled {
   background: #1e2230;
   border-color: transparent;
-  color: #52525b; /* zinc-600 */
+  color: #52525b;
+  /* zinc-600 */
   box-shadow: none;
   cursor: not-allowed;
   transform: none;
@@ -79,9 +86,21 @@ body {
 
 /* Animations */
 @keyframes shake {
-  0%, 100% { transform: translateX(0); }
-  20%, 60% { transform: translateX(-4px); }
-  40%, 80% { transform: translateX(4px); }
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  20%,
+  60% {
+    transform: translateX(-4px);
+  }
+
+  40%,
+  80% {
+    transform: translateX(4px);
+  }
 }
 
 .animate-shake {
@@ -89,10 +108,13 @@ body {
 }
 
 @keyframes pulseBorder {
-  0%, 100% {
+
+  0%,
+  100% {
     border-color: #1e2230;
     box-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.4);
   }
+
   50% {
     border-color: #6366f1;
     box-shadow: 0 0 15px rgba(99, 102, 241, 0.3);
@@ -104,8 +126,15 @@ body {
 }
 
 @keyframes popIn {
-  0% { transform: scale(0.97); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
+  0% {
+    transform: scale(0.97);
+    opacity: 0;
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 .animate-pop-in {
@@ -113,8 +142,15 @@ body {
 }
 
 @keyframes slideDown {
-  0% { transform: translateY(-8px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0% {
+    transform: translateY(-8px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .animate-slide-down {
@@ -127,8 +163,15 @@ body {
 }
 
 @keyframes trophyBounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-2px); }
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
 }
 
 .animate-trophy {
@@ -141,21 +184,31 @@ body {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
   background: #08090d;
 }
+
 ::-webkit-scrollbar-thumb {
   background: #1e2230;
   border-radius: 3px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #2e344d;
 }
 
 /* Confetti Popper Animation */
 @keyframes confettiFall {
-  0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
-  100% { transform: translateY(105vh) rotate(360deg); opacity: 0; }
+  0% {
+    transform: translateY(-50px) rotate(0deg);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(105vh) rotate(360deg);
+    opacity: 0;
+  }
 }
 
 .confetti {
@@ -170,8 +223,15 @@ body {
 
 /* Leaderboard Podium & Modern List Animations */
 @keyframes crownFloat {
-  0%, 100% { transform: translateY(0) rotate(-3deg); }
-  50% { transform: translateY(-6px) rotate(3deg); }
+
+  0%,
+  100% {
+    transform: translateY(0) rotate(-3deg);
+  }
+
+  50% {
+    transform: translateY(-6px) rotate(3deg);
+  }
 }
 
 .animate-crown-float {
@@ -179,21 +239,54 @@ body {
 }
 
 @keyframes podiumRise1st {
-  0% { transform: translateY(50px) scale(0.85); opacity: 0; }
-  60% { transform: translateY(-8px) scale(1.03); opacity: 1; }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
+  0% {
+    transform: translateY(50px) scale(0.85);
+    opacity: 0;
+  }
+
+  60% {
+    transform: translateY(-8px) scale(1.03);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes podiumRise2nd {
-  0% { transform: translateY(40px) scale(0.85); opacity: 0; }
-  60% { transform: translateY(-5px) scale(1.02); opacity: 1; }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
+  0% {
+    transform: translateY(40px) scale(0.85);
+    opacity: 0;
+  }
+
+  60% {
+    transform: translateY(-5px) scale(1.02);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 
 @keyframes podiumRise3rd {
-  0% { transform: translateY(30px) scale(0.85); opacity: 0; }
-  60% { transform: translateY(-3px) scale(1.01); opacity: 1; }
-  100% { transform: translateY(0) scale(1); opacity: 1; }
+  0% {
+    transform: translateY(30px) scale(0.85);
+    opacity: 0;
+  }
+
+  60% {
+    transform: translateY(-3px) scale(1.01);
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
 }
 
 .animate-podium-1st {
@@ -211,8 +304,15 @@ body {
 }
 
 @keyframes goldGlow {
-  0%, 100% { box-shadow: 0 0 25px rgba(245, 158, 11, 0.3), inset 0 0 15px rgba(245, 158, 11, 0.15); }
-  50% { box-shadow: 0 0 45px rgba(245, 158, 11, 0.6), inset 0 0 25px rgba(245, 158, 11, 0.35); }
+
+  0%,
+  100% {
+    box-shadow: 0 0 25px rgba(245, 158, 11, 0.3), inset 0 0 15px rgba(245, 158, 11, 0.15);
+  }
+
+  50% {
+    box-shadow: 0 0 45px rgba(245, 158, 11, 0.6), inset 0 0 25px rgba(245, 158, 11, 0.35);
+  }
 }
 
 .animate-gold-glow {
@@ -220,8 +320,15 @@ body {
 }
 
 @keyframes rowSlideIn {
-  0% { transform: translateY(20px); opacity: 0; }
-  100% { transform: translateY(0); opacity: 1; }
+  0% {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 .animate-row-slide {
@@ -230,8 +337,13 @@ body {
 }
 
 @keyframes barGrow {
-  0% { width: 0%; }
-  100% { width: var(--target-width, 100%); }
+  0% {
+    width: 0%;
+  }
+
+  100% {
+    width: var(--target-width, 100%);
+  }
 }
 
 .animate-bar-fill {
