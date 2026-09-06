@@ -10,6 +10,10 @@ socketio = SocketIO(async_mode="threading", logger=True, engineio_logger=True)
 def create_app() -> Flask:
     app = Flask(__name__)
 
+    @app.get("/health")
+    def health():
+        return {"status": "ok"},200
+
     load_wordlist()
 
     cors_allowed = os.environ.get("CORS_ALLOWED_ORIGINS", "*")
