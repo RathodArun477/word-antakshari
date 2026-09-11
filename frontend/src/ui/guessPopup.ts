@@ -8,19 +8,19 @@ const OVERLAY_ID = "guess-popup";
 socket.on("guess_options", (data: GuessOptions) => {
   const html = `
     <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-pink-500"></div>
-    <h2 class="text-lg font-bold text-white tracking-wide text-center">Guess the Word!</h2>
+    <h2 class="text-xl font-bold text-white tracking-wide text-center mb-1">Guess the Word!</h2>
     <p class="text-xs text-gray-400 text-center font-medium mb-4">Select the word you think the previous player submitted:</p>
     
     <div class="space-y-2">
       ${data.options.map((word, i) => `
         <button data-index="${i}"
-          class="guess-option-btn w-full bg-white/3 border border-white/5 rounded-xl px-4 py-3 text-left font-medium text-gray-200 hover:bg-white/10 hover:border-violet-500/30 transition-all duration-300">
+          class="guess-option-btn w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-left font-medium text-gray-200 hover:bg-white/10 hover:border-violet-500/30 transition-all duration-200 cursor-pointer">
           ${word}
         </button>
       `).join("")}
     </div>
     
-    <button id="skip-guess-btn" class="w-full text-xs font-semibold text-gray-400 hover:text-white uppercase tracking-wider pt-4">
+    <button id="skip-guess-btn" class="btn-ghost w-full text-xs font-semibold text-gray-400 hover:text-white uppercase tracking-wider mt-3">
       Leave blank (no guess)
     </button>
   `;

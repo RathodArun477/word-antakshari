@@ -7,7 +7,7 @@ import random
 import string
 import time
 
-from game.enums import RoomState
+from game.enums import RoomState, PlayerConnectionState
 from game.player import Player
 from config import (
     MIN_PLAYERS,
@@ -16,6 +16,7 @@ from config import (
     MODE_ROUNDS,
     ROUNDS_MODE_MIN_LIMIT,
     ROUNDS_MODE_MAX_LIMIT,
+    STARTING_LIVES,
 )
 
 def generate_random_letter() -> str:
@@ -113,6 +114,7 @@ class GameRoom:
                 "mode": self.mode,
                 "state": self.state.name.lower(),
                 "players": [p.to_public_dict(is_host=(p.player_id == self.host_player_id)) for p in self.players.values()],
+                "host_player_id": self.host_player_id,
                 "current_round": self.current_round if self.mode == MODE_ROUNDS else None,
                 "current_turn_player_id": current.player_id if current else None,
                 "required_letter": self.required_letter,
@@ -133,6 +135,7 @@ class GameRoom:
         self.current_round = 1
         self.current_turn_index = 0
         self.required_letter = generate_random_letter()
+
 
     def get_current_player(self) -> Player | None:
         if not self.turn_order:

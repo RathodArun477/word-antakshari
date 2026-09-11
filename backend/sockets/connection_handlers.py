@@ -138,11 +138,14 @@ def handle_leave_room(data=None):
                 "reason": "grace_period_expired",
             }, room=room_code)
 
+            if room.state == RoomState.FINISHED:
+                return
+
             from game import rules
             end_result = rules.check_win_condition(room)
             if end_result is not None:
+                room.state = RoomState.FINISHED
                 socketio.emit("game_ended", end_result, room=room_code)
-                room_registry.remove_room(room_code)
                 return
 
             if room.is_current_turn(player_id):
@@ -203,11 +206,14 @@ def _grace_period_watch(room_code: str, player_id: str):
                 "reason": "grace_period_expired",
             }, room=room_code)
 
+            if room.state == RoomState.FINISHED:
+                return
+
             from game import rules
             end_result = rules.check_win_condition(room)
             if end_result is not None:
+                room.state = RoomState.FINISHED
                 socketio.emit("game_ended", end_result, room=room_code)
-                room_registry.remove_room(room_code)
 
 
 @socketio.on("submit_feedback")

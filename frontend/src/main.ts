@@ -39,6 +39,10 @@ socket.on("room_state_update", (data: RoomStateSnapshot) => {
   setRoomState(data);
   const app = document.querySelector<HTMLDivElement>("#app");
   if (app) {
+    // If the leaderboard is showing (leave-lobby button present), don't disrupt it unless a rematch is starting (state === "waiting")
+    if (document.querySelector("#leave-lobby-btn") && data.state !== "waiting") {
+      return;
+    }
     if (document.querySelector("#word-input")) {
       import("./ui/gameBoard").then(({ renderGameBoard }) => {
         renderGameBoard(app);

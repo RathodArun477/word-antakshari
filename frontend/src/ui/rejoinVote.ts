@@ -19,15 +19,15 @@ export function renderRejoinButton(container: HTMLElement): void {
   }
 
   container.innerHTML = `
-    <button id="rejoin-btn" class="w-full bg-violet-600/10 text-violet-300 border border-violet-500/30 hover:bg-violet-600/20 rounded-xl py-3.5 text-xs font-bold uppercase tracking-wider transition-all duration-300">
+    <button id="rejoin-btn" class="btn-primary w-full text-xs font-bold uppercase tracking-wider">
       Request Rejoin
     </button>
   `;
   container.querySelector<HTMLButtonElement>("#rejoin-btn")!.onclick = () => {
     const html = `
       <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-pink-500"></div>
-      <h2 class="text-lg font-bold text-white tracking-wide text-center">Confirm Rejoin Request</h2>
-      <p class="text-xs text-gray-400 font-medium text-center my-4 leading-relaxed">
+      <h2 class="text-xl font-bold text-white tracking-wide text-center mb-4">Confirm Rejoin Request</h2>
+      <p class="text-sm text-gray-300 font-medium text-center my-4 leading-relaxed">
         Rejoining will deduct <strong class="text-pink-400 font-extrabold">50% of your points</strong>. 
         These deducted points will be distributed equally among players who vote <strong class="text-emerald-400 font-bold">YES</strong> for you. 
         Players who vote <strong class="text-pink-400 font-bold">NO</strong> receive nothing. 
@@ -35,8 +35,8 @@ export function renderRejoinButton(container: HTMLElement): void {
         Do you still want to request a rejoin?
       </p>
       <div class="flex gap-3">
-        <button id="rejoin-confirm-yes" class="flex-1 glass-button rounded-xl py-3 text-xs font-bold uppercase tracking-wider">Yes, Deduct & Ask</button>
-        <button id="rejoin-confirm-no" class="flex-1 bg-white/5 border border-white/10 text-gray-400 font-bold rounded-xl py-3 text-xs uppercase tracking-wider hover:bg-white/10 transition-all duration-300">Cancel</button>
+        <button id="rejoin-confirm-yes" class="flex-1 btn-primary text-xs font-bold uppercase tracking-wider">Yes, Deduct & Ask</button>
+        <button id="rejoin-confirm-no" class="flex-1 btn-secondary text-xs font-bold uppercase tracking-wider">Cancel</button>
       </div>
     `;
     const overlay = showOverlay("rejoin-confirm", html);
@@ -81,7 +81,7 @@ socket.on("rejoin_vote_start", (data: RejoinVoteStart) => {
     removeOverlay("rejoin-vote");
   };
 
-  const msLeft = data.expires_at - Date.now();
+  const msLeft = data.duration_seconds !== undefined ? (data.duration_seconds * 1000) : (data.expires_at - Date.now());
   setTimeout(() => removeOverlay("rejoin-vote"), Math.max(0, msLeft));
 });
 

@@ -60,7 +60,7 @@ def check_win_condition(room) -> dict | None:
 
 def _final_scores(room) -> list[dict]:
     return [
-        {"player_id": p.player_id, "score": p.score}
+        {"player_id": p.player_id, "name": p.name, "score": p.score}
         for p in room.players.values()
     ]
 
@@ -141,11 +141,12 @@ def apply_rejoin(player) -> int:
     Returns the new score, matching CONTRACT.md's RejoinResult.new_score_if_approved.
     """
     from config import REJOIN_SCORE_PENALTY_MULTIPLIER
-
+    from game.enums import PlayerConnectionState
     player.score = max(0, int(player.score * REJOIN_SCORE_PENALTY_MULTIPLIER))
     player.is_eliminated = False
     player.lives = 1
     player.rejoins_used += 1
+    player.connection_state = PlayerConnectionState.CONNECTED
 
     return player.score
 

@@ -50,6 +50,7 @@ def handle_rejoin_request(data=None):
                 socketio.emit("rejoin_vote_start", {
                     "requesting_player_id": player_id,
                     "expires_at": expires_at,
+                    "duration_seconds": REJOIN_VOTE_TIMEOUT_SECONDS,
                 }, room=sid)
 
     socketio.start_background_task(_vote_timeout_watch, room_code, REJOIN_VOTE_TIMEOUT_SECONDS)

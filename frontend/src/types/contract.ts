@@ -260,6 +260,7 @@ export interface RejoinRequest {}
 export interface RejoinVoteStart {
   requesting_player_id: string;
   expires_at: number; // epoch ms
+  duration_seconds?: number;
 }
 
 export interface RejoinVoteCast {
@@ -277,7 +278,7 @@ export interface RejoinResult {
 export interface GameEnded {
   winner_id_or_ids: string[]; // multiple entries only on a tie
   reason: "last_standing" | "round_limit";
-  final_scores: { player_id: string; score: number }[];
+  final_scores: { player_id: string; name?: string; score: number }[];
 }
 
 // --- Errors ---
@@ -310,6 +311,7 @@ export interface RoomStateSnapshot {
   mode: RoomMode;
   state: RoomState;
   players: PublicPlayerInfo[];
+  host_player_id?: string;
   current_round: number | null;
   current_turn_player_id: string | null;
   required_letter: string | null;

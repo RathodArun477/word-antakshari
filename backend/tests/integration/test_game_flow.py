@@ -223,7 +223,9 @@ def test_rejoin_voting(app):
     result_event = next(e for e in events if e["name"] == "rejoin_result")
     assert result_event["args"][0]["approved"] is True
     assert result_event["args"][0]["player_id"] == bob_id
-    assert p_bob.lives == 1
+    with room_registry.room_session(room_code) as room:
+        p_bob_latest = room.get_player(bob_id)
+        assert p_bob_latest.lives == 1
 
 
 def test_letter_chaining(app):

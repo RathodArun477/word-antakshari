@@ -53,10 +53,117 @@ body {
   box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
+/* Standard Button System (Consolidated into 3 core variants) */
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  min-height: 48px;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #ffffff;
+  font-family: inherit;
+  font-weight: 700;
+  font-size: 0.875rem;
+  letter-spacing: 0.025em;
+  border-radius: 12px;
+  padding: 0 1.5rem;
+  box-shadow: 0 4px 14px 0 rgba(99, 102, 241, 0.3);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #818cf8 0%, #6366f1 100%);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px 0 rgba(99, 102, 241, 0.45);
+}
+
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-primary:disabled {
+  background: #1e2230;
+  border-color: transparent;
+  color: #52525b;
+  box-shadow: none;
+  cursor: not-allowed;
+  transform: none;
+  opacity: 0.6;
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 48px;
+  min-height: 48px;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #e4e4e7;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  letter-spacing: 0.025em;
+  border-radius: 12px;
+  padding: 0 1.25rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  transform: translateY(-2px);
+}
+
+.btn-secondary:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.btn-secondary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: #a1a1aa;
+  font-family: inherit;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border-radius: 12px;
+  padding: 0.5rem 1rem;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  user-select: none;
+}
+
+.btn-ghost:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+}
+
+.btn-sm {
+  height: 38px;
+  min-height: 38px;
+  padding: 0 1rem;
+  font-size: 0.8125rem;
+}
+
 /* Premium Primary Button with Gradient */
 .glass-button {
   background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  /* indigo-violet gradient */
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: #ffffff;
   font-weight: 600;
@@ -78,7 +185,6 @@ body {
   background: #1e2230;
   border-color: transparent;
   color: #52525b;
-  /* zinc-600 */
   box-shadow: none;
   cursor: not-allowed;
   transform: none;

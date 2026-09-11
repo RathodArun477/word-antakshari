@@ -1,6 +1,5 @@
 import { socket } from "../socket/connection";
 import { getState, setRoomState } from "../state/gameState";
-import { renderLobby } from "./lobby";
 import type {
   TurnStart,
   TurnResolved,
@@ -16,8 +15,10 @@ import { resetState } from "../state/gameState";
 import type { PlayerDisconnected  } from "../types/contract";
 import type { PlayerKicked } from "../types/contract";
 import type { ReconnectSuccess } from "../types/contract";
+import { removeOverlay } from "./overlay";
 
 socket.on("game_started", () => {
+  removeOverlay("rematch-offer-popup");
   showScreen(renderGameBoard);
 });
 
@@ -42,7 +43,7 @@ export function renderGameBoard(container: HTMLElement): void {
           </h1>
           <p class="text-xs text-gray-400">Survival Mode | Arena: ${room.room_code}</p>
         </div>
-        <button id="leave-btn" class="px-3 py-1.5 rounded-lg border border-red-500/30 text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-all duration-300">
+        <button id="leave-btn" class="btn-ghost border border-red-500/30 text-xs font-semibold text-red-400 hover:bg-red-500/10 transition-all duration-300 py-1.5 px-3">
           Leave Game
         </button>
       </div>
@@ -79,15 +80,15 @@ export function renderGameBoard(container: HTMLElement): void {
                 <div class="flex items-center justify-between">
                   <span class="font-bold text-sm tracking-wide text-gray-200 flex items-center">
                     ${p.name}
-                    ${isMe ? '<span class="ml-2 text-[9px] bg-pink-500/20 text-pink-300 border border-pink-500/30 rounded-full px-2 py-0.5 font-bold uppercase tracking-wider">You</span>' : ''}
+                    ${isMe ? '<span class="ml-2 text-xs bg-pink-500/20 text-pink-300 border border-pink-500/30 rounded-full px-2 py-0.5 font-bold uppercase tracking-wider">You</span>' : ''}
                   </span>
-                  ${isCurrent ? '<span class="text-[8px] bg-violet-500/20 text-violet-300 border border-violet-500/30 rounded-full px-1.5 py-0.5 font-bold uppercase animate-pulse">Turn</span>' : ''}
+                  ${isCurrent ? '<span class="text-xs bg-violet-500/20 text-violet-300 border border-violet-500/30 rounded-full px-2 py-0.5 font-bold uppercase animate-pulse">Turn</span>' : ''}
                 </div>
 
                 <div class="flex items-center justify-between mt-3">
                   <div class="flex flex-col">
                     <span class="text-xs text-gray-400 font-medium">Score: <strong class="text-white">${p.score}</strong></span>
-                    ${p.correct_guess_streak > 0 ? `<span class="text-[10px] text-amber-400 font-extrabold flex items-center gap-1 mt-0.5">🔥 Streak: ${p.correct_guess_streak}</span>` : ''}
+                    ${p.correct_guess_streak > 0 ? `<span class="text-xs text-amber-400 font-extrabold flex items-center gap-1 mt-0.5">🔥 Streak: ${p.correct_guess_streak}</span>` : ''}
                   </div>
                   
                   <!-- Lives Display as Heart Badges -->
@@ -116,7 +117,7 @@ export function renderGameBoard(container: HTMLElement): void {
       <!-- Turn timer bar -->
       <div class="space-y-2">
         <div class="w-full bg-white/5 rounded-full h-3 overflow-hidden border border-white/5">
-          <div id="timer-bar" class="bg-gradient-to-r from-violet-500 to-pink-500 h-3 rounded-full transition-all duration-100" style="width: 100%"></div>
+          <div id="timer-bar" class="bg-gradient-to-r from-violet-500 to-pink-500 h-3 rounded-full" style="width: 100%"></div>
         </div>
       </div>
 
@@ -126,7 +127,7 @@ export function renderGameBoard(container: HTMLElement): void {
           <input id="word-input" type="text" placeholder="Type your word..."
             class="flex-1 glass-input rounded-xl px-4 py-3.5 text-sm focus:outline-none" />
           <button id="submit-word-btn"
-            class="glass-button rounded-xl px-8 py-3.5 text-sm font-bold uppercase tracking-wider">
+            class="btn-primary h-12 px-8 text-sm font-bold tracking-wider">
             Submit Word
           </button>
         </div>
@@ -241,14 +242,15 @@ function startTimerBar(): void {
       clearInterval(timerInterval);
       timerInterval = null;
     }
-  }, 100);
+  }, 30);
 }
 
 // --- Socket listeners ---
 
 socket.on("turn_start", (data: TurnStart) => {
+  if (document.querySelector("#leave-lobby-btn")) return;
   currentTurnPlayerId = data.player_id;
-  turnEndsAt = data.server_timestamp + data.duration_seconds * 1000;
+  turnEndsAt = Date.now() + data.duration_seconds * 1000;
   turnDurationMs = data.duration_seconds * 1000;
   requiredLetter = data.required_letter;
 
@@ -260,6 +262,7 @@ socket.on("turn_start", (data: TurnStart) => {
 });
 
 socket.on("turn_resolved", (data: TurnResolved) => {
+  if (document.querySelector("#leave-lobby-btn")) return;
   const state = getState();
   const room = state.roomState;
   if (!room) return;
@@ -287,6 +290,7 @@ socket.on("turn_resolved", (data: TurnResolved) => {
 });
 
 socket.on("player_eliminated", (data: PlayerEliminated) => {
+  if (document.querySelector("#leave-lobby-btn")) return;
   const state = getState();
   const room = state.roomState;
   if (!room) return;
@@ -303,8 +307,15 @@ socket.on("game_ended", (data: GameEnded) => {
 
   const app = document.querySelector<HTMLDivElement>("#app")!;
   const state = getState();
+  
+  const getPlayerName = (id: string) => {
+    const fromScores = data.final_scores.find(s => s.player_id === id);
+    if (fromScores && fromScores.name) return fromScores.name;
+    return state.roomState?.players.find(p => p.player_id === id)?.name ?? id;
+  };
+
   const winnerNames = data.winner_id_or_ids
-    .map(id => state.roomState?.players.find(p => p.player_id === id)?.name ?? id)
+    .map(id => getPlayerName(id))
     .join(", ");
 
   const sortedScores = [...data.final_scores].sort((a, b) => b.score - a.score);
@@ -315,8 +326,6 @@ socket.on("game_ended", (data: GameEnded) => {
   const p1 = sortedScores[0];
   const p2 = sortedScores[1];
   const p3 = sortedScores[2];
-
-  const getPlayerName = (id: string) => state.roomState?.players.find(p => p.player_id === id)?.name ?? id;
 
   const renderPodiumSlot = (playerData: { player_id: string; score: number } | undefined, rank: 1 | 2 | 3) => {
     if (!playerData) {
@@ -496,10 +505,10 @@ socket.on("game_ended", (data: GameEnded) => {
         </div>
 
         <div class="pt-2 space-y-2.5">
-          <button id="play-again-btn" class="w-full glass-button rounded-2xl py-4 text-xs md:text-sm font-extrabold uppercase tracking-widest shadow-lg shadow-violet-600/30 hover:shadow-violet-600/50 hover:scale-[1.01] transition-all">
-            🎮 Back to Arena Lobby
+          <button id="leave-lobby-btn" class="btn-secondary w-full text-xs font-bold text-gray-300 hover:text-white rounded-xl py-3 px-4">
+            ← Leave Arena (Back to Lobby)
           </button>
-          <button id="end-feedback-btn" class="w-full bg-white/5 border border-white/10 hover:bg-white/10 text-xs font-bold text-gray-300 hover:text-white rounded-2xl py-3 px-4 transition-all duration-200 cursor-pointer flex items-center justify-center gap-2">
+          <button id="end-feedback-btn" class="btn-ghost w-full text-xs font-bold text-gray-300 hover:text-white rounded-xl py-2.5 px-4 flex items-center justify-center gap-2">
             💬 Share Feedback
           </button>
         </div>
@@ -519,9 +528,14 @@ socket.on("game_ended", (data: GameEnded) => {
     });
   };
 
-  app.querySelector<HTMLButtonElement>("#play-again-btn")!.onclick = () => {
+
+  app.querySelector<HTMLButtonElement>("#leave-lobby-btn")!.onclick = () => {
+    socket.disconnect();
     resetState();
-    showScreen(renderLobby);
+    connectSocket();
+    import("./lobby").then(({ renderLobby }) => {
+      showScreen(renderLobby);
+    });
   };
 });
 
@@ -535,6 +549,7 @@ socket.on("error", (data: ErrorEvent) => {
 });
 
 socket.on("player_disconnected", (data: PlayerDisconnected) => {
+  if (document.querySelector("#leave-lobby-btn")) return;
   const state = getState();
   const name = state.roomState?.players.find(p => p.player_id === data.player_id)?.name ?? "A player";
   const msgEl = document.querySelector<HTMLParagraphElement>("#game-message");
@@ -545,6 +560,7 @@ socket.on("player_disconnected", (data: PlayerDisconnected) => {
 });
 
 socket.on("player_kicked", (data: PlayerKicked) => {
+  if (document.querySelector("#leave-lobby-btn")) return;
   const state = getState();
   const room = state.roomState;
   if (room) {
@@ -575,6 +591,7 @@ socket.on("reconnect_success", (data: ReconnectSuccess) => {
 });
 
 socket.on("life_lost", (data: LifeLost) => {
+  if (document.querySelector("#leave-lobby-btn")) return;
   console.log("Life_lost received:", data);
   const state = getState();
   const room = state.roomState;
@@ -595,7 +612,9 @@ socket.on("life_lost", (data: LifeLost) => {
 function triggerConfetti(): void {
   const container = document.body;
   const colors = ["#8b5cf6", "#ec4899", "#06b6d4", "#f59e0b", "#10b981", "#eab308", "#3b82f6", "#f43f5e", "#a855f7", "#22c55e"];
-  const count = 600; // Increased confetti quantity
+  // Adaptive count: fewer confetti on mobile devices to prevent performance lag and visual clutter
+  const isMobile = window.innerWidth < 768;
+  const count = isMobile ? 120 : 250;
 
   for (let i = 0; i < count; i++) {
     const confetti = document.createElement("div");

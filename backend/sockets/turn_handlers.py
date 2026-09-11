@@ -156,8 +156,9 @@ def handle_word_submit(data):
 def _finish_turn(room) -> None:
     end_result = rules.check_win_condition(room)
     if end_result is not None:
+        from game.enums import RoomState
+        room.state = RoomState.FINISHED
         socketio.emit("game_ended", end_result, room=room.room_code)
-        room_registry.remove_room(room.room_code)
         return
 
     room.advance_turn()

@@ -78,12 +78,12 @@ function showStealTargetPicker(): void {
     <div class="space-y-2">
       ${targets.map(p => `
         <button data-target="${p.player_id}"
-          class="steal-target-btn w-full bg-white/3 border border-white/5 rounded-xl px-4 py-3 text-left font-medium text-gray-200 hover:bg-white/10 hover:border-pink-500/30 transition-all duration-300">
+          class="steal-target-btn w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-left font-medium text-gray-200 hover:bg-white/10 hover:border-pink-500/30 transition-all duration-200 cursor-pointer">
           ${p.name} <span class="text-xs text-pink-400 font-bold ml-1">(${p.lives} Lives)</span>
         </button>
       `).join("")}
     </div>
-    <button id="cancel-steal" class="w-full text-xs font-semibold text-gray-400 hover:text-white uppercase tracking-wider pt-4">Cancel</button>
+    <button id="cancel-steal" class="btn-ghost w-full text-xs font-semibold text-gray-400 hover:text-white uppercase tracking-wider mt-3">Cancel</button>
   `;
   const overlay = showOverlay("steal-target-picker", html);
 
@@ -112,20 +112,20 @@ socket.on("steal_challenge_offer", (data: StealChallengeOffer) => {
 
   const html = `
     <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-fuchsia-500"></div>
-    <h2 class="text-lg font-bold text-white tracking-wide text-center">Arena Challenge!</h2>
+    <h2 class="text-xl font-bold text-white tracking-wide text-center mb-1">Arena Challenge!</h2>
     <p class="text-xs text-gray-400 text-center font-medium mb-4">
       <strong class="text-violet-300 font-bold">${challenger?.name ?? "A player"}</strong> is attempting to steal one of your lives! Pick a minigame to defend:
     </p>
     <div class="grid grid-cols-2 gap-3 mb-4">
       ${usableChallenges.map(c => `
         <button data-type="${c}"
-          class="challenge-choice-btn bg-white/3 border border-white/5 rounded-xl px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-200 hover:bg-violet-600/10 hover:border-violet-500/30 transition-all duration-300">
+          class="challenge-choice-btn bg-white/5 border border-white/10 rounded-xl px-3 py-3 text-center text-xs font-bold uppercase tracking-wider text-gray-200 hover:bg-violet-600/10 hover:border-violet-500/30 transition-all duration-200 cursor-pointer">
           ${formatChallengeName(c)}
         </button>
       `).join("")}
     </div>
     <div class="border-t border-white/5 pt-4">
-      <button id="reject-steal-btn" class="w-full bg-pink-500/10 border border-pink-500/20 text-pink-400 font-bold rounded-xl py-3 text-xs uppercase tracking-wider hover:bg-pink-500/20 transition-all duration-300">
+      <button id="reject-steal-btn" class="btn-secondary w-full text-pink-400 border-pink-500/20 hover:bg-pink-500/10 text-xs font-bold uppercase tracking-wider">
         Reject Challenge (-75 pts penalty)
       </button>
     </div>

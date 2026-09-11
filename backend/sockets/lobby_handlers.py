@@ -86,3 +86,4 @@ def handle_update_room_settings(data):
 
         # Broadcast the updated snapshot to all players in the room
         socketio.emit("room_settings_updated", room.to_public_snapshot(), room=room.room_code)
+
