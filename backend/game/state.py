@@ -71,6 +71,7 @@ class GameRoom:
         self.current_turn_started_at: float | None = None
         self.turn_resolved:bool = False
         self.current_guess_options:list[str] = []
+        self.guess_submissions: set[set] = set()
 
 
     # --- Player management (lobby phase only) ---
@@ -282,6 +283,7 @@ class GameRoom:
             "turn_resolved": self.turn_resolved,
             "required_letter":self.required_letter,
             "current_guess_options": self.current_guess_options,
+            "guess_submissions": list(self.guess_submissions),
         }
 
     @classmethod
@@ -307,5 +309,6 @@ class GameRoom:
         room.required_letter = data["required_letter"]
         room.turn_resolved = data["turn_resolved"]
         room.current_guess_options = data["current_guess_options"]
+        room.guess_submissions = set(data.get("guess_submissions",[]))
         return room
     

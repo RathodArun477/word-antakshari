@@ -311,3 +311,13 @@ def test_guess_streak_and_penalty(app):
     guess_res = next(e for e in charlie_events if e["name"] == "guess_result")
     assert guess_res["args"][0]["correct"] is True
     assert guess_res["args"][0]["streak_count"] == 1
+
+    charlie.emit("guess_submit",{"guess_index": correct_index})
+
+    second_guess_events = charlie.get_received()
+
+    assert any(
+        event["name"] == "error"
+        and event["args"][0]["code"] == "ALREADY_GUESSED"
+        for event in second_guess_events
+    )

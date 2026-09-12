@@ -47,12 +47,46 @@ def handle_guess_submit(data):
             socketio.emit("error", {"code": "INVALID_PHASE", "message": "No word to guess this turn"}, room=request.sid)
             return
 
+        if player_id in room.guess_submissions:
+            socketio.emit(
+                "error",
+                {
+                    "code":"ALREADY_GUESSED",
+                    "message":"You have already guessed this turn",
+                },
+                to=request.sid,
+            )
+            return
+
         # We need the exact options list the player was shown, to map their
         # index back to a word. Since options were generated fresh per-turn and
         # not stored on the room, we regenerate deterministically isn't safe
         # (randomized) -- so the room needs to cache the options it sent.
         # See note below the code.
-        guessed_word = room.current_guess_options[data["guess_index"]]
+        guess_index = data.get("guess_index")
+        if isinstance(guess_index,bool) or not isinstance(guess_index,int):
+            socketio.emit(
+                "error",
+                {
+                    "code":"INVALID_GUESS_INDEX",
+                    "message":"Guess index must be an integer",
+                },
+                to=request.sid,
+            )
+            return
+        if not 0 <= guess_index < len(room.current_guess_options):
+            socketio.emit(
+                "error",
+                {
+                    "code":"INVALID_GUESS_INDEX",
+                    "message":"Guess index is outside the available options",
+                },
+                to=request.sid,
+            )
+            return
+        room.guess_submissions.add(player_id)
+
+        guessed_word = room.current_guess_options[guess_index]
         correct = (guessed_word == room.previous_word)
 
         result = rules.process_guess(player, correct)

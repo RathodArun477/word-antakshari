@@ -18,6 +18,7 @@ from sockets.rate_limit import rate_limited
 
 def start_turn(room) -> None:
     room.turn_resolved = False
+    room.guess_submissions.clear()
     current = room.get_current_player()
     room.current_turn_started_at = time.time()
 
