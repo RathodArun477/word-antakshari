@@ -60,6 +60,7 @@ class GameRoom:
 
         self.players: dict[str, Player] = {}
         self.turn_order: list[str] = []       # player_ids, fixed once game starts
+        self.round_player_ids: list[str] = []
         self.host_player_id: str | None = None
 
         self.used_words: set[str] = set()      # rule 4 — no repeats, by anyone
@@ -71,7 +72,7 @@ class GameRoom:
         self.current_turn_started_at: float | None = None
         self.turn_resolved:bool = False
         self.current_guess_options:list[str] = []
-        self.guess_submissions: set[set] = set()
+        self.guess_submissions: set[str] = set()
 
 
     # --- Player management (lobby phase only) ---
@@ -130,13 +131,20 @@ class GameRoom:
     def start_game(self) -> None:
         if not self.can_start():
             raise ValueError("Cannot start - not enough players or already started")
-        
+
         self.turn_order = list(self.players.keys())
+        self.round_player_ids = [
+            player_id
+            for player_id in self.turn_order
+            if (
+                (player := self.players.get(player_id)) is not None and not player.is_eliminated
+            )
+        ]
+
         self.state = RoomState.IN_PROGRESS
         self.current_round = 1
         self.current_turn_index = 0
         self.required_letter = generate_random_letter()
-
 
     def get_current_player(self) -> Player | None:
         if not self.turn_order:
@@ -150,38 +158,55 @@ class GameRoom:
     
     def advance_turn(self) -> None:
         """
-        Moves to the next player's turn, skipping eliminated players.
-        A "round" completes whenever the index wraps back to 0 - that's when current_round increments, regardless of how many players in that cycle were skipped for being eliminated.
-        """
+        Move to the next eligible player.
 
+        turn_order is fixed for the lifetime of the game.
+        round_player_ids defines who participates in the current round.
+        Eliminated players are skipped.
+
+        When the raw turn index wraps from the end of turn_order back to zero,
+        a new round begins and the current active players are snapshotted into
+        round_player_ids.
+        """
         if not self.turn_order:
             raise ValueError("Game has not started")
-        
+
         attempts = 0
         max_attempts = len(self.turn_order)
 
         while attempts < max_attempts:
             self.current_turn_index += 1
+
             if self.current_turn_index >= len(self.turn_order):
                 self.current_turn_index = 0
                 self.current_round += 1
-            
-            candidate = self.players.get(self.turn_order[self.current_turn_index])
-            if candidate is not None and not candidate.is_eliminated:
-                return # found the next active player, turn advanced
-            
-            attempts += 1
-        
-        # Looped through everyone and focused no active player - game should
-        # Already have ended via a win-condition check before this happens.
-        # Leaving this as a hard failure so it surfaces immediately in testing
-        # Rather than silently looping forever in production.
-        raise RuntimeError(
-            "advance_turn found no active players — "
-            "rules.check_win_condition() must be called before advance_turn "
-            "to catch this earlier, as a real game-end event, not a crash"
-        )
 
+                self.round_player_ids = [
+                    player_id
+                    for player_id in self.turn_order
+                    if (
+                        (player := self.players.get(player_id)) is not None
+                        and not player.is_eliminated
+                    )
+                ]
+
+            candidate_id = self.turn_order[self.current_turn_index]
+            candidate = self.players.get(candidate_id)
+
+            if (
+                candidate is not None
+                and not candidate.is_eliminated
+                and candidate.player_id in self.round_player_ids
+            ):
+                return
+
+            attempts += 1
+
+        raise RuntimeError(
+            "advance_turn found no eligible players — "
+            "rules.check_win_condition() must be called before advance_turn "
+            "to catch this earlier as a real game-end event"
+        )
     # --- Word Submission ----
 
     def submit_word(self,player_id:str,word:str,time_remaining_seconds:float,word_is_valid_fn) -> dict:
@@ -256,10 +281,40 @@ class GameRoom:
         if player.lives <= 0:
             player.is_eliminated = True        
     
-    def is_round_limit_reached(self) -> bool:
-        if self.mode != MODE_ROUNDS:
+    def is_end_of_round(self) -> bool:
+        """
+        Return True when the current turn is the final eligible turn
+        of the current round.
+
+        round_player_ids is frozen at the beginning of the round, so
+        eliminations during the round do not shift the round boundary.
+        """
+        if not self.turn_order or not self.round_player_ids:
             return False
-        return self.current_round > self.round_limit
+
+        current_player = self.get_current_player()
+        if current_player is None:
+            return False
+
+        if current_player.player_id not in self.round_player_ids:
+            return False
+
+        for player_id in self.turn_order[self.current_turn_index + 1:]:
+            if player_id not in self.round_player_ids:
+                continue
+            player = self.players.get(player_id)
+            if player is not None and not player.is_eliminated:
+                return False
+        return True
+
+
+    def is_final_round(self) -> bool:
+        """Return True when the current round is the configured final round."""
+        return (
+            self.mode == MODE_ROUNDS
+            and self.round_limit is not None
+            and self.current_round == self.round_limit
+        )
     
     def to_dict(self) -> dict:
         return {
@@ -273,6 +328,7 @@ class GameRoom:
             "created_at": self.created_at,
             "players": {pid: p.to_dict() for pid, p in self.players.items()},
             "turn_order": self.turn_order,
+            "round_player_ids" : self.round_player_ids,
             "host_player_id": self.host_player_id,
             "used_words": list(self.used_words),
             "current_round": self.current_round,
@@ -310,5 +366,15 @@ class GameRoom:
         room.turn_resolved = data["turn_resolved"]
         room.current_guess_options = data["current_guess_options"]
         room.guess_submissions = set(data.get("guess_submissions",[]))
+        room.round_player_ids = data.get(
+            "round_player_ids",
+            [
+                player_id
+                for player_id in room.turn_order
+                if (
+                    (player := room.players.get(player_id)) is not None
+                    and not player.is_eliminated
+                )
+            ],
+        )
         return room
-    

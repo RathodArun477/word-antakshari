@@ -46,16 +46,24 @@ def check_win_condition(room) -> dict | None:
             "final_scores": _final_scores(room),
         }
 
-    # Rounds mode only: game ends when the round limit is reached,
-    # regardless of how many players are still active.
-    if room.is_round_limit_reached():
-        return {
-            "winner_id_or_ids": _highest_score_ids(room),
-            "reason": "round_limit",
-            "final_scores": _final_scores(room),
-        }
-
     return None  # game continues
+
+def check_round_limit_condition(room) -> dict | None:
+    """
+    Return the game-ended payload when the configured round limit has
+    just been completed. Otherwise return None.
+    """
+    if not room.is_final_round():
+        return None
+
+    if not room.is_end_of_round():
+        return None
+
+    return {
+        "winner_id_or_ids": _highest_score_ids(room),
+        "reason": "round_limit",
+        "final_scores": _final_scores(room),
+    }
 
 
 def _final_scores(room) -> list[dict]:

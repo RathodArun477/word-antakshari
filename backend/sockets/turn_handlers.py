@@ -153,13 +153,37 @@ def handle_word_submit(data):
         _finish_turn(room)
         return result
 
-
 def _finish_turn(room) -> None:
+    # First check gameplay-ending conditions that take precedence,
+    # such as only one active player remaining.
     end_result = rules.check_win_condition(room)
+
     if end_result is not None:
         from game.enums import RoomState
+
         room.state = RoomState.FINISHED
-        socketio.emit("game_ended", end_result, room=room.room_code)
+
+        socketio.emit(
+            "game_ended",
+            end_result,
+            room=room.room_code,
+        )
+        return
+
+    # In rounds mode, stop immediately after the final eligible turn
+    # of the configured final round. Do not advance into another round.
+    end_result = rules.check_round_limit_condition(room)
+
+    if end_result is not None:
+        from game.enums import RoomState
+
+        room.state = RoomState.FINISHED
+
+        socketio.emit(
+            "game_ended",
+            end_result,
+            room=room.room_code,
+        )
         return
 
     room.advance_turn()

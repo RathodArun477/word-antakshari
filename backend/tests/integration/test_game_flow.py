@@ -3,6 +3,7 @@ import pytest
 from app import create_app, socketio
 import room_registry
 from sockets import registry
+from game.enums import RoomState
 
 
 @pytest.fixture(scope="session")
@@ -227,6 +228,79 @@ def test_rejoin_voting(app):
         p_bob_latest = room.get_player(bob_id)
         assert p_bob_latest.lives == 1
 
+def test_round_limit_ends_after_final_turn(app):
+    alice, bob, room_code, bob_id = create_two_player_room(
+        app,
+        mode="rounds",
+        round_limit=3,
+    )
+
+    alice.emit("start_game", {})
+    alice.get_received()
+    bob.get_received()
+
+    # Round 1: Alice
+    ack = alice.emit("word_submit", {"word": "python"}, callback=True)
+    assert ack["accepted"] is True
+    alice.get_received()
+    bob.get_received()
+
+    # Round 1: Bob
+    ack = bob.emit("word_submit", {"word": "backend"}, callback=True)
+    assert ack["accepted"] is True
+
+    events = bob.get_received()
+    alice_events = alice.get_received()
+
+    # A new round should begin with Alice.
+    turn_start = next(
+        event for event in alice_events + events
+        if event["name"] == "turn_start"
+    )
+    assert turn_start["args"][0]["round_number"] == 2
+
+    # Complete Round 2.
+    alice.emit("word_submit", {"word": "database"}, callback=True)
+    alice.get_received()
+    bob.get_received()
+
+    bob.emit("word_submit", {"word": "socket"}, callback=True)
+    alice_events = alice.get_received()
+    bob_events = bob.get_received()
+
+    turn_start = next(
+        event for event in alice_events + bob_events
+        if event["name"] == "turn_start"
+    )
+    assert turn_start["args"][0]["round_number"] == 3
+
+    # Complete the final round.
+    alice.emit("word_submit", {"word": "flask"}, callback=True)
+    alice.get_received()
+    bob.get_received()
+
+    bob.emit("word_submit", {"word": "server"}, callback=True)
+
+    final_events = alice.get_received() + bob.get_received()
+
+    with room_registry.room_session(room_code) as room:
+        assert room.state == RoomState.FINISHED
+        assert room.current_round == 3
+
+    game_ended = [
+        event for event in final_events
+        if event["name"] == "game_ended"
+    ]
+
+    assert game_ended
+    assert game_ended[0]["args"][0]["reason"] == "round_limit"
+
+    # No fourth-round turn should have been started.
+    assert not any(
+        event["name"] == "turn_start"
+        and event["args"][0]["round_number"] == 4
+        for event in final_events
+    )
 
 def test_letter_chaining(app):
     alice, bob, room_code, bob_id = create_two_player_room(app)
@@ -321,3 +395,44 @@ def test_guess_streak_and_penalty(app):
         and event["args"][0]["code"] == "ALREADY_GUESSED"
         for event in second_guess_events
     )
+
+def test_round_end_when_current_final_player_is_eliminated(app):
+    alice, bob, room_code, bob_id = create_two_player_room(
+        app,
+        mode="rounds",
+        round_limit=3,
+    )
+
+    with room_registry.room_session(room_code) as room:
+        room.start_game()
+
+        room.advance_turn()
+
+        assert room.get_current_player().player_id == bob_id
+        assert bob_id in room.round_player_ids
+
+        bob_player = room.get_player(bob_id)
+        bob_player.is_eliminated = True
+
+        assert room.is_end_of_round() is True
+
+def test_round_end_skips_eliminated_middle_player_with_three_players(app):
+    alice, bob, charlie, room_code, bob_id, charlie_id = create_three_player_room(app)
+
+    with room_registry.room_session(room_code) as room:
+        room.mode = "rounds"
+        room.round_limit = 3
+        room.start_game()
+
+        alice_id = room.turn_order[0]
+
+        assert room.get_current_player().player_id == alice_id
+
+        room.get_player(bob_id).is_eliminated = True
+
+        assert room.is_end_of_round() is False
+
+        room.advance_turn()
+
+        assert room.get_current_player().player_id == charlie_id
+        assert room.is_end_of_round() is True
