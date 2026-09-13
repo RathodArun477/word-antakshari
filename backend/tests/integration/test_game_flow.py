@@ -6,19 +6,19 @@ from sockets import registry
 from game.enums import RoomState
 
 
-@pytest.fixture(scope="session")
-def app():
-    return create_app()
+# @pytest.fixture(scope="session")
+# def app():
+#     return create_app()
 
 
-@pytest.fixture(autouse=True)
-def reset_global_state():
-    yield
-    room_registry._reset_for_tests()
-    registry._reset_for_tests()
+# @pytest.fixture(autouse=True)
+# def reset_global_state():
+#     yield
+#     room_registry._reset_for_tests()
+#     registry._reset_for_tests()
 
-    from sockets.rate_limit import _reset_for_tests as reset_rate_limits
-    reset_rate_limits()
+#     from sockets.rate_limit import _reset_for_tests as reset_rate_limits
+#     reset_rate_limits()
 
 
 def create_two_player_room(app, mode="endless", round_limit=None):
@@ -49,6 +49,9 @@ def create_two_player_room(app, mode="endless", round_limit=None):
 
     return alice, bob, room_code, bob_player_id_value
 
+def current_turn_id(room_code):
+    with room_registry.room_session(room_code) as room:
+        return room.current_turn_id
 
 def test_room_creation_and_join(app):
     alice, bob, room_code,bob_id = create_two_player_room(app)
@@ -75,7 +78,12 @@ def test_word_submission_scores_and_advances_turn(app):
     alice.get_received()
     bob.get_received()
 
-    ack = alice.emit("word_submit", {"word": "python"}, callback=True)
+    turn_id = current_turn_id(room_code)
+    ack = alice.emit(
+        "word_submit",
+        {"word": "python", "turn_id": turn_id},
+        callback=True,
+    )
     assert ack["accepted"] is True
     assert ack["word_length"] == 6
     assert ack["score_gained"] >= 60  # length*10 floor, plus time bonus on top
@@ -95,17 +103,18 @@ def test_duplicate_word_rejected(app):
     alice.get_received()
     bob.get_received()
 
-    alice.emit("word_submit", {"word": "python"}, callback=True)
+    turn_id = current_turn_id(room_code)
+    alice.emit("word_submit", {"word": "python", "turn_id": turn_id}, callback=True)
     alice.get_received()
     bob.get_received()
 
     # It's Bob's turn now — he tries the same word Alice already used.
-    ack = bob.emit("word_submit", {"word": "python"}, callback=True)
+    ack = bob.emit("word_submit", {"word": "python", "turn_id": current_turn_id(room_code)}, callback=True)
     assert ack["accepted"] is False
     assert ack["reason_if_rejected"] == "already_used_warning"
 
     # Bob tries a second duplicate and incurs a life deduction penalty
-    ack2 = bob.emit("word_submit", {"word": "python"}, callback=True)
+    ack2 = bob.emit("word_submit", {"word": "python", "turn_id": current_turn_id(room_code)}, callback=True)
     assert ack2["accepted"] is False
     assert ack2["reason_if_rejected"] == "already_used_penalty"
 
@@ -117,7 +126,7 @@ def test_word_submit_rejects_out_of_turn(app):
     bob.get_received()
 
     # It's Alice's turn — Bob tries to submit anyway.
-    ack = bob.emit("word_submit", {"word": "backend"}, callback=True)
+    ack = bob.emit("word_submit", {"word": "backend", "turn_id": current_turn_id(room_code)}, callback=True)
     assert ack["accepted"] is False
     assert ack["reason_if_rejected"] == "out_of_turn"
 
@@ -170,7 +179,7 @@ def test_skip_powerup(app):
     alice.get_received()
     bob.get_received()
 
-    alice.emit("use_skip", {})
+    alice.emit("use_skip", {"turn_id":current_turn_id(room_code)})
     events = alice.get_received()
     assert any(e["name"] == "skip_used" for e in events)
 
@@ -183,7 +192,7 @@ def test_double_score_powerup(app):
     alice.emit("start_game", {})
     alice.get_received()
     
-    alice.emit("word_submit", {"word": "python"})
+    alice.emit("word_submit", {"word": "python", "turn_id": current_turn_id(room_code)})
     events = alice.get_received()
     turn_resolved = next(e for e in events if e["name"] == "turn_resolved")
     score_before = turn_resolved["args"][0]["new_total_score"]
@@ -240,13 +249,18 @@ def test_round_limit_ends_after_final_turn(app):
     bob.get_received()
 
     # Round 1: Alice
-    ack = alice.emit("word_submit", {"word": "python"}, callback=True)
+    turn_id = current_turn_id(room_code)
+    ack = alice.emit(
+        "word_submit",
+        {"word": "python", "turn_id": turn_id},
+        callback=True,
+    )
     assert ack["accepted"] is True
     alice.get_received()
     bob.get_received()
 
     # Round 1: Bob
-    ack = bob.emit("word_submit", {"word": "backend"}, callback=True)
+    ack = bob.emit("word_submit", {"word": "backend", "turn_id": current_turn_id(room_code)}, callback=True)
     assert ack["accepted"] is True
 
     events = bob.get_received()
@@ -260,11 +274,11 @@ def test_round_limit_ends_after_final_turn(app):
     assert turn_start["args"][0]["round_number"] == 2
 
     # Complete Round 2.
-    alice.emit("word_submit", {"word": "database"}, callback=True)
+    alice.emit("word_submit", {"word": "database", "turn_id": current_turn_id(room_code)}, callback=True)
     alice.get_received()
     bob.get_received()
 
-    bob.emit("word_submit", {"word": "socket"}, callback=True)
+    bob.emit("word_submit", {"word": "socket", "turn_id": current_turn_id(room_code)}, callback=True)
     alice_events = alice.get_received()
     bob_events = bob.get_received()
 
@@ -275,11 +289,11 @@ def test_round_limit_ends_after_final_turn(app):
     assert turn_start["args"][0]["round_number"] == 3
 
     # Complete the final round.
-    alice.emit("word_submit", {"word": "flask"}, callback=True)
+    alice.emit("word_submit", {"word": "flask", "turn_id": current_turn_id(room_code)}, callback=True)
     alice.get_received()
     bob.get_received()
 
-    bob.emit("word_submit", {"word": "server"}, callback=True)
+    bob.emit("word_submit", {"word": "server", "turn_id": current_turn_id(room_code)}, callback=True)
 
     final_events = alice.get_received() + bob.get_received()
 
@@ -319,7 +333,7 @@ def test_letter_chaining(app):
     }
     word = word_map[req_letter.lower()]
     
-    ack = alice.emit("word_submit", {"word": word}, callback=True)
+    ack = alice.emit("word_submit", {"word": word, "turn_id": current_turn_id(room_code)}, callback=True)
     assert ack["accepted"] is True
     
     events = alice.get_received()
@@ -371,7 +385,7 @@ def test_guess_streak_and_penalty(app):
     with room_registry.room_session(room_code) as room:
         room.required_letter = "p"
 
-    alice.emit("word_submit", {"word": "python"})
+    alice.emit("word_submit", {"word": "python", "turn_id": current_turn_id(room_code)})
     alice.get_received()
     bob.get_received()
     charlie_events = charlie.get_received()
@@ -379,14 +393,14 @@ def test_guess_streak_and_penalty(app):
     options = guess_opts_event["args"][0]["options"]
     
     correct_index = options.index("python")
-    charlie.emit("guess_submit", {"guess_index": correct_index})
+    charlie.emit("guess_submit", {"turn_id": guess_opts_event["args"][0]["turn_id"], "guess_index": correct_index})
     
     charlie_events = charlie.get_received()
     guess_res = next(e for e in charlie_events if e["name"] == "guess_result")
     assert guess_res["args"][0]["correct"] is True
     assert guess_res["args"][0]["streak_count"] == 1
 
-    charlie.emit("guess_submit",{"guess_index": correct_index})
+    charlie.emit("guess_submit", {"turn_id": guess_opts_event["args"][0]["turn_id"], "guess_index": correct_index})
 
     second_guess_events = charlie.get_received()
 
