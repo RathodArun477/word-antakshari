@@ -19,16 +19,6 @@ export interface PublicPlayerInfo {
   correct_guess_streak: number;
 }
 
-export interface RoomStateSnapshot {
-  room_code: string;
-  mode: RoomMode;
-  state: RoomState;
-  players: PublicPlayerInfo[];
-  current_round: number | null;
-  turn_timer_seconds: number;
-  round_limit: number | null;
-}
-
 export interface PlayerStateSnapshot {
   player_id: string;
   session_token: string;
@@ -104,14 +94,19 @@ export interface GameStarted {
 // --- Turn flow ---
 
 export interface TurnStart {
+  turn_id:string;
   player_id: string;
+  started_at:number;
+  deadline_at:number;
   server_timestamp: number; // epoch ms
   duration_seconds: number;
   round_number: number;
+  required_letter:string;
 }
 
 export interface WordSubmit {
   word: string;
+  turn_id: string;
 }
 
 export type WordRejectReason =
@@ -124,7 +119,8 @@ export type WordRejectReason =
   | "out_of_turn"
   | "invalid_phase"
   | "not_authorized"
-  | "wrong_starting_letter";
+  | "wrong_starting_letter"
+  | "turn_expired";
 
 export interface WordResult {
   accepted: boolean;
@@ -134,6 +130,7 @@ export interface WordResult {
 }
 
 export interface TurnResolved {
+  turn_id: string;
   player_id: string;
   word_length: number;
   score_gained: number;
@@ -143,18 +140,20 @@ export interface TurnResolved {
 
 export interface PlayerEliminated {
   player_id: string;
-  reason: "timeout" | "steal_lost";
+  reason: "timeout" | "steal_lost" | "duplicate_word_penalty";
 }
 
 // --- Guessing phase ---
 
 export interface GuessOptions {
-  options: string[]; // exactly 5
-  expires_at: number; // epoch ms
+  turn_id: string;
+  options: string[];
+  expires_at: number;
 }
 
 export interface GuessSubmit {
-  guess_index: number; // 0-4
+  turn_id: string;
+  guess_index: number;
 }
 
 export interface GuessResult {
@@ -165,7 +164,9 @@ export interface GuessResult {
 
 // --- Powerups ---
 
-export interface UseSkip {}
+export interface UseSkip {
+  turn_id: string;
+}
 
 export interface SkipUsed {
   player_id: string;
@@ -298,14 +299,6 @@ export interface ErrorEvent {
   message: string;
 }
 
-export interface TurnStart {
-  player_id: string;
-  server_timestamp: number;
-  duration_seconds: number;
-  round_number: number;
-  required_letter: string;
-}
-
 export interface RoomStateSnapshot {
   room_code: string;
   mode: RoomMode;
@@ -314,9 +307,13 @@ export interface RoomStateSnapshot {
   host_player_id?: string;
   current_round: number | null;
   current_turn_player_id: string | null;
+  current_turn_id: string | null;
   required_letter: string | null;
   turn_started_at: number | null;
+  turn_deadline_at: number | null;
   turn_duration_seconds: number;
+  turn_timer_seconds: number;
+  round_limit: number | null;
 }
 
 export interface DoubleScoreActivated {
@@ -327,5 +324,5 @@ export interface DoubleScoreActivated {
 export interface LifeLost {
   player_id: string;
   new_lives: number;
-  reason: "timeout" | "steal_lost";
+  reason: "timeout" | "steal_lost" | "duplicate_word_penalty";
 }

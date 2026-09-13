@@ -4,6 +4,7 @@ import { io, Socket } from "socket.io-client";
 // Change this when deploying, but for now this matches app.py running
 // on port 5000.
 const BACKEND_URL = "https://word-antakshari.onrender.com";
+// const BACKEND_URL = "http://localhost:5000";
 
 export const socket: Socket = io(BACKEND_URL, {
   autoConnect: false, // we connect explicitly, not immediately on import

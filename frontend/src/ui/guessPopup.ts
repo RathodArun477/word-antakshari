@@ -2,10 +2,20 @@ import { socket } from "../socket/connection";
 import { showOverlay, removeOverlay } from "./overlay";
 import type { GuessOptions, GuessResult } from "../types/contract";
 import { getState } from "../state/gameState";
+import { getCurrentTurnId } from "./gameBoard";
 
 const OVERLAY_ID = "guess-popup";
 
 socket.on("guess_options", (data: GuessOptions) => {
+  const currentTurnId = getCurrentTurnId();
+  if(!currentTurnId || data.turn_id != currentTurnId) {
+    return;
+  }
+
+  const msLeft = data.expires_at - Date.now();
+  if(msLeft <= 0) {
+    return;
+  }
   const html = `
     <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-pink-500"></div>
     <h2 class="text-xl font-bold text-white tracking-wide text-center mb-1">Guess the Word!</h2>
@@ -29,7 +39,7 @@ socket.on("guess_options", (data: GuessOptions) => {
   overlay.querySelectorAll<HTMLButtonElement>(".guess-option-btn").forEach(btn => {
     btn.onclick = () => {
       const index = Number(btn.dataset.index);
-      socket.emit("guess_submit", { guess_index: index });
+      socket.emit("guess_submit", { guess_index: index , turn_id: currentTurnId,});
       removeOverlay(OVERLAY_ID);
     };
   });
@@ -38,7 +48,7 @@ socket.on("guess_options", (data: GuessOptions) => {
     removeOverlay(OVERLAY_ID);
   };
 
-  const msLeft = data.expires_at - Date.now();
+  // const msLeft = data.expires_at - Date.now();
   setTimeout(() => removeOverlay(OVERLAY_ID), Math.max(0, msLeft));
 });
 

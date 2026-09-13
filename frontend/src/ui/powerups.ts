@@ -11,7 +11,7 @@ import type {
 import { getState, setPlayerState, setRoomState } from "../state/gameState";
 import type { SkipUsed } from "../types/contract";
 
-export function renderPowerupBar(container: HTMLElement): void {
+export function renderPowerupBar(container: HTMLElement,turnId: string | null): void {
   const state = getState();
   const me = state.playerState;
   if (!me) return;
@@ -43,7 +43,8 @@ export function renderPowerupBar(container: HTMLElement): void {
   `;
 
   container.querySelector<HTMLButtonElement>("#skip-btn")!.onclick = () => {
-    socket.emit("use_skip", {});
+    if(!turnId) return;
+    socket.emit("use_skip", { turn_id:turnId });
     const state = getState();
     if (state.playerState) {
       setPlayerState({ ...state.playerState, has_skip: false });
@@ -52,10 +53,10 @@ export function renderPowerupBar(container: HTMLElement): void {
 
   container.querySelector<HTMLButtonElement>("#double-btn")!.onclick = () => {
     socket.emit("use_double_score", {});
-    const state = getState();
-    if (state.playerState) {
-      setPlayerState({ ...state.playerState, has_double_score: false });
-    }
+    // const state = getState();
+    // if (state.playerState) {
+    //   setPlayerState({ ...state.playerState, has_double_score: false });
+    // }
   };
 
   container.querySelector<HTMLButtonElement>("#steal-btn")!.onclick = () => {

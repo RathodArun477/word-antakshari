@@ -121,6 +121,8 @@ class GameRoom:
                 "players": [p.to_public_dict(is_host=(p.player_id == self.host_player_id)) for p in self.players.values()],
                 "host_player_id": self.host_player_id,
                 "current_round": self.current_round if self.mode == MODE_ROUNDS else None,
+                "current_turn_id":self.current_turn_id if current else None,
+                "turn_deadline_at":int(self.current_turn_deadline_at * 1000) if self.current_turn_deadline_at else None,
                 "current_turn_player_id": current.player_id if current else None,
                 "required_letter": self.required_letter,
                 "turn_started_at": int(self.current_turn_started_at * 1000) if self.current_turn_started_at else None,

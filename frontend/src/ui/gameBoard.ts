@@ -1,5 +1,5 @@
 import { socket } from "../socket/connection";
-import { getState, setRoomState } from "../state/gameState";
+import { getState, setPlayerState, setRoomState } from "../state/gameState";
 import type {
   TurnStart,
   TurnResolved,
@@ -22,11 +22,53 @@ socket.on("game_started", () => {
   showScreen(renderGameBoard);
 });
 
-let currentTurnPlayerId: string | null = null;
-let turnEndsAt: number = 0;
-let turnDurationMs: number = 0;
+type CurrentTurn = {
+  turnId: string;
+  playerId: string;
+  requiredLetter: string;
+  startedAt: number;
+  deadlineAt: number;
+};
+
+export function getCurrentTurnId(): string | null {
+  return currentTurn?.turnId ?? null;
+}
+
+function syncTurnFromRoomState(room: ReconnectSuccess["room_state"]): void {
+  if (
+    room.state !== "in_progress" ||
+    !room.current_turn_id ||
+    !room.current_turn_player_id ||
+    room.turn_started_at === null ||
+    room.turn_deadline_at === null
+  ) {
+    currentTurn = null;
+    if (timerInterval !== null) {
+      clearInterval(timerInterval);
+      timerInterval = null;
+    }
+    return;
+  }
+
+  if (
+    currentTurn &&
+    room.current_turn_id === currentTurn.turnId &&
+    room.turn_started_at <= currentTurn.startedAt
+  ) {
+    return;
+  }
+
+  currentTurn = {
+    turnId: room.current_turn_id,
+    playerId: room.current_turn_player_id,
+    requiredLetter: room.required_letter ?? "",
+    startedAt: room.turn_started_at,
+    deadlineAt: room.turn_deadline_at,
+  };
+}
+
+let currentTurn: CurrentTurn | null = null;
 let timerInterval: number | null = null;
-let requiredLetter : string = "";
 
 export function renderGameBoard(container: HTMLElement): void {
   const state = getState();
@@ -66,7 +108,7 @@ export function renderGameBoard(container: HTMLElement): void {
         <!-- Players List Grid -->
         <div id="players-list" class="md:col-span-2 grid grid-cols-2 gap-4">
           ${room.players.map(p => {
-            const isCurrent = p.player_id === currentTurnPlayerId;
+            const isCurrent = p.player_id === currentTurn?.playerId;
             const isMe = p.player_id === me.player_id;
             return `
               <div id="player-${p.player_id}"
@@ -108,7 +150,7 @@ export function renderGameBoard(container: HTMLElement): void {
           <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 to-pink-500"></div>
           <p class="text-xs font-bold uppercase tracking-widest text-gray-400">Required Letter</p>
           <div class="w-20 h-20 rounded-full bg-gradient-to-tr from-violet-500 to-pink-500 flex items-center justify-center text-4xl font-black text-white shadow-lg shadow-violet-500/30 animate-pulse">
-            ${requiredLetter ? requiredLetter.toUpperCase() : "..."}
+            ${currentTurn?.requiredLetter ? currentTurn.requiredLetter.toUpperCase() : "..."}
           </div>
           <p class="text-xs text-violet-300 font-medium">Submit word starting with this letter</p>
         </div>
@@ -144,7 +186,10 @@ export function renderGameBoard(container: HTMLElement): void {
 
   container.querySelector<HTMLButtonElement>("#submit-word-btn")!.onclick = submitWord;
   import("./powerups").then(({ renderPowerupBar }) => {
-    renderPowerupBar(container.querySelector<HTMLDivElement>("#powerup-bar")!);
+    renderPowerupBar(
+      container.querySelector<HTMLDivElement>("#powerup-bar")!,
+      currentTurn?.turnId ?? null
+    );
   });
   import("./rejoinVote").then(({ renderRejoinButton }) => {
     renderRejoinButton(container.querySelector<HTMLDivElement>("#rejoin-container")!);
@@ -172,9 +217,11 @@ export function renderGameBoard(container: HTMLElement): void {
 function submitWord(): void {
   const input = document.querySelector<HTMLInputElement>("#word-input")!;
   const word = input.value.trim();
-  if (!word) return;
+  if (!word || !currentTurn) return;
 
-  socket.emit("word_submit", { word }, (result: WordResult) => {
+  const turnId = currentTurn.turnId;
+
+  socket.emit("word_submit", { word, turn_id: turnId }, (result: WordResult) => {
     const msgEl = document.querySelector<HTMLParagraphElement>("#game-message")!;
     if (!result.accepted) {
       if (result.reason_if_rejected === "already_used_warning") {
@@ -207,7 +254,7 @@ function flashLifeLost(playerId: string): void {
 function updateTurnUI(): void {
   const state = getState();
   const me = state.playerState!;
-  const isMyTurn = currentTurnPlayerId === me.player_id;
+  const isMyTurn = currentTurn?.playerId === me.player_id;
 
   const input = document.querySelector<HTMLInputElement>("#word-input");
   const btn = document.querySelector<HTMLButtonElement>("#submit-word-btn");
@@ -222,14 +269,15 @@ function startTimerBar(): void {
 
   timerInterval = window.setInterval(() => {
     const bar = document.querySelector<HTMLDivElement>("#timer-bar");
-    if (!bar) return;
+    if (!bar || !currentTurn) return;
 
     const now = Date.now();
-    const remaining = Math.max(0, turnEndsAt - now);
-    const percent = turnDurationMs > 0 ? (remaining / turnDurationMs) * 100 : 0;
+    const remaining = Math.max(0, currentTurn.deadlineAt - now);
+    const duration = Math.max(1, currentTurn.deadlineAt - currentTurn.startedAt);
+    const percent = Math.min(100, (remaining / duration) * 100);
+
     bar.style.width = `${percent}%`;
 
-    // Dynamic timer coloring based on time remaining
     if (percent < 25) {
       bar.className = "bg-gradient-to-r from-red-500 to-pink-500 h-3 rounded-full";
     } else if (percent < 50) {
@@ -238,8 +286,8 @@ function startTimerBar(): void {
       bar.className = "bg-gradient-to-r from-violet-500 to-pink-500 h-3 rounded-full";
     }
 
-    if (remaining <= 0 && timerInterval !== null) {
-      clearInterval(timerInterval);
+    if (remaining <= 0) {
+      clearInterval(timerInterval!);
       timerInterval = null;
     }
   }, 30);
@@ -248,21 +296,45 @@ function startTimerBar(): void {
 // --- Socket listeners ---
 
 socket.on("turn_start", (data: TurnStart) => {
+  console.log("TURN_START RECEIVED:",data);
   if (document.querySelector("#leave-lobby-btn")) return;
-  currentTurnPlayerId = data.player_id;
-  turnEndsAt = Date.now() + data.duration_seconds * 1000;
-  turnDurationMs = data.duration_seconds * 1000;
-  requiredLetter = data.required_letter;
+
+  if (!data.turn_id || data.deadline_at <= data.started_at) {
+    return;
+  }
+
+  if (currentTurn && data.started_at <= currentTurn.startedAt) {
+    return;
+  }
+
+  currentTurn = {
+    turnId: data.turn_id,
+    playerId: data.player_id,
+    requiredLetter: data.required_letter,
+    startedAt: data.started_at,
+    deadlineAt: data.deadline_at,
+  };
 
   const state = getState();
+
   if (state.roomState) {
+    state.roomState.current_turn_id = data.turn_id;
+    state.roomState.current_turn_player_id = data.player_id;
+    state.roomState.current_round = data.round_number;
+    state.roomState.required_letter = data.required_letter;
+    state.roomState.turn_started_at = data.started_at;
+    state.roomState.turn_deadline_at = data.deadline_at;
+    state.roomState.turn_duration_seconds = data.duration_seconds;
+
+    setRoomState(state.roomState);
+
     renderGameBoard(document.querySelector<HTMLDivElement>("#app")!);
-    startTimerBar();
   }
 });
 
 socket.on("turn_resolved", (data: TurnResolved) => {
   if (document.querySelector("#leave-lobby-btn")) return;
+  if(!currentTurn || data.turn_id !== currentTurn.turnId) return;
   const state = getState();
   const room = state.roomState;
   if (!room) return;
@@ -297,13 +369,24 @@ socket.on("player_eliminated", (data: PlayerEliminated) => {
 
   const player = room.players.find(p => p.player_id === data.player_id);
   if (player) player.is_eliminated = true;
+  if (currentTurn?.playerId === data.player_id) {
+  currentTurn = null;
+  if (timerInterval !== null) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
   setRoomState(room);
 
   renderGameBoard(document.querySelector<HTMLDivElement>("#app")!);
 });
 
 socket.on("game_ended", (data: GameEnded) => {
-  if (timerInterval !== null) clearInterval(timerInterval);
+  if(timerInterval !== null) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+  currentTurn = null;
 
   const app = document.querySelector<HTMLDivElement>("#app")!;
   const state = getState();
@@ -570,6 +653,13 @@ socket.on("player_kicked", (data: PlayerKicked) => {
   }
 
   const name = room?.players.find(p => p.player_id === data.player_id)?.name ?? "A player";
+  if (currentTurn?.playerId === data.player_id) {
+  currentTurn = null;
+  if (timerInterval !== null) {
+    clearInterval(timerInterval);
+    timerInterval = null;
+  }
+}
   const msgEl = document.querySelector<HTMLParagraphElement>("#game-message");
   if (msgEl) {
     msgEl.textContent = `${name} was kicked (grace period expired).`;
@@ -580,32 +670,49 @@ socket.on("player_kicked", (data: PlayerKicked) => {
 });
 
 socket.on("reconnect_success", (data: ReconnectSuccess) => {
-  if (data.room_state.state === "in_progress" && data.room_state.current_turn_player_id) {
-    currentTurnPlayerId = data.room_state.current_turn_player_id;
-    requiredLetter = data.room_state.required_letter ?? "";
-    if (data.room_state.turn_started_at) {
-      turnEndsAt = data.room_state.turn_started_at + data.room_state.turn_duration_seconds * 1000;
-      turnDurationMs = data.room_state.turn_duration_seconds * 1000;
+  setRoomState(data.room_state);
+  setPlayerState(data.player_state);
+  syncTurnFromRoomState(data.room_state);
+
+  if (data.room_state.state === "in_progress") {
+    const app = document.querySelector<HTMLDivElement>("#app");
+    if (app) {
+      renderGameBoard(app);
+    }
+  }
+});
+
+socket.on("room_state_update", (data: ReconnectSuccess["room_state"]) => {
+  setRoomState(data);
+  syncTurnFromRoomState(data);
+
+  if (data.state === "in_progress") {
+    const app = document.querySelector<HTMLDivElement>("#app");
+    if (app) {
+      renderGameBoard(app);
     }
   }
 });
 
 socket.on("life_lost", (data: LifeLost) => {
   if (document.querySelector("#leave-lobby-btn")) return;
-  console.log("Life_lost received:", data);
+
   const state = getState();
   const room = state.roomState;
+
   if (room) {
     const player = room.players.find(p => p.player_id === data.player_id);
     if (player) player.lives = data.new_lives;
     setRoomState(room);
   }
-  
-  if (state.playerState && state.playerState.player_id === data.player_id) {
+
+  if (
+    state.playerState &&
+    state.playerState.player_id === data.player_id
+  ) {
     state.playerState.lives = data.new_lives;
   }
 
-  renderGameBoard(document.querySelector<HTMLDivElement>("#app")!);
   flashLifeLost(data.player_id);
 });
 
