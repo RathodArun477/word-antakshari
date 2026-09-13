@@ -50,9 +50,12 @@ function renderJoinCreateForms(container: HTMLElement): void {
           <img src="/logo.png" alt="Word Antakshari Logo" class="w-full h-full object-cover rounded-2xl" />
         </div>
         <h1 class="text-3xl md:text-5xl font-black tracking-tight text-white drop-shadow">
-          Word Antakshari Arena
+          Word Antakshari
         </h1>
-        <p class="text-slate-400 font-normal text-sm md:text-base">The ultimate multiplayer word chaining game 🎮</p>
+
+        <p class="text-slate-400 font-normal text-sm md:text-base">
+          Play Word Antakshari online — a multiplayer word-chain game where you build chains, challenge opponents, and compete for the highest score.
+        </p>
       </div>
 
       <!-- Action Cards Grid (Equal Heights & Baseline Aligned) -->
@@ -411,35 +414,35 @@ export function showFeedbackPopup(): void {
       <div class="space-y-1.5">
         <label class="block text-xs font-medium text-gray-300">1. How would you rate the game speed & timers? ⏱️</label>
         <div class="flex gap-2" data-question="q1">
-          ${[1,2,3,4,5].map(n => `<button type="button" data-value="${n}" class="rating-btn w-8 h-8 rounded-full border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-gray-400 hover:text-white transition-all duration-200">${n}</button>`).join("")}
+          ${[1, 2, 3, 4, 5].map(n => `<button type="button" data-value="${n}" class="rating-btn w-8 h-8 rounded-full border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-gray-400 hover:text-white transition-all duration-200">${n}</button>`).join("")}
         </div>
       </div>
       <!-- Question 2 -->
       <div class="space-y-1.5">
         <label class="block text-xs font-medium text-gray-300">2. How fun are the steal challenge minigames? ⚔️</label>
         <div class="flex gap-2" data-question="q2">
-          ${[1,2,3,4,5].map(n => `<button type="button" data-value="${n}" class="rating-btn w-8 h-8 rounded-full border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-gray-400 hover:text-white transition-all duration-200">${n}</button>`).join("")}
+          ${[1, 2, 3, 4, 5].map(n => `<button type="button" data-value="${n}" class="rating-btn w-8 h-8 rounded-full border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-gray-400 hover:text-white transition-all duration-200">${n}</button>`).join("")}
         </div>
       </div>
       <!-- Question 3 -->
       <div class="space-y-1.5">
         <label class="block text-xs font-medium text-gray-300">3. How would you rate the guess word mechanic? 🔮</label>
         <div class="flex gap-2" data-question="q3">
-          ${[1,2,3,4,5].map(n => `<button type="button" data-value="${n}" class="rating-btn w-8 h-8 rounded-full border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-gray-400 hover:text-white transition-all duration-200">${n}</button>`).join("")}
+          ${[1, 2, 3, 4, 5].map(n => `<button type="button" data-value="${n}" class="rating-btn w-8 h-8 rounded-full border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-gray-400 hover:text-white transition-all duration-200">${n}</button>`).join("")}
         </div>
       </div>
       <!-- Question 4 -->
       <div class="space-y-1.5">
         <label class="block text-xs font-medium text-gray-300">4. How is the visual design & look of the game? 🎨</label>
         <div class="flex gap-2" data-question="q4">
-          ${[1,2,3,4,5].map(n => `<button type="button" data-value="${n}" class="rating-btn w-8 h-8 rounded-full border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-gray-400 hover:text-white transition-all duration-200">${n}</button>`).join("")}
+          ${[1, 2, 3, 4, 5].map(n => `<button type="button" data-value="${n}" class="rating-btn w-8 h-8 rounded-full border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-gray-400 hover:text-white transition-all duration-200">${n}</button>`).join("")}
         </div>
       </div>
       <!-- Question 5 -->
       <div class="space-y-1.5">
         <label class="block text-xs font-medium text-gray-300">5. Overall rating of Word Antakshari? 🌟</label>
         <div class="flex gap-2" data-question="q5">
-          ${[1,2,3,4,5].map(n => `<button type="button" data-value="${n}" class="rating-btn w-8 h-8 rounded-full border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-gray-400 hover:text-white transition-all duration-200">${n}</button>`).join("")}
+          ${[1, 2, 3, 4, 5].map(n => `<button type="button" data-value="${n}" class="rating-btn w-8 h-8 rounded-full border border-white/10 hover:border-violet-500/50 hover:bg-violet-500/10 text-xs font-bold text-gray-400 hover:text-white transition-all duration-200">${n}</button>`).join("")}
         </div>
       </div>
       <!-- Comment -->
