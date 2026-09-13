@@ -6,6 +6,7 @@ should be callable and testable with zero server running.
 import random
 import string
 import time
+import uuid
 
 from game.enums import RoomState, PlayerConnectionState
 from game.player import Player
@@ -67,11 +68,13 @@ class GameRoom:
         self.current_round: int = 0
         self.current_turn_index: int = 0
         self.required_letter: str | None = None
-        self.previous_word:str | None = None
-        self.previous_turn_player_id:str | None = None
+        self.previous_word: str | None = None
+        self.previous_turn_player_id: str | None = None
+        self.current_turn_id: str | None = None
         self.current_turn_started_at: float | None = None
-        self.turn_resolved:bool = False
-        self.current_guess_options:list[str] = []
+        self.current_turn_deadline_at: float | None = None
+        self.turn_resolved: bool = False
+        self.current_guess_options: list[str] = []
         self.guess_submissions: set[str] = set()
 
 
@@ -155,6 +158,35 @@ class GameRoom:
     def is_current_turn(self,player_id:str) -> bool:
         current = self.get_current_player()
         return current is not None and current.player_id == player_id
+
+    def new_turn_id(self) -> str:
+        return uuid.uuid4().hex
+
+    def activate_turn(self,turn_id:str,started_at:float,deadline_at:float) -> None:
+        if self.get_current_player() is None:
+            raise ValueError("Cannot activate a turn without a current player")
+        if not turn_id:
+            raise ValueError("turn_id is required")
+        if deadline_at <= started_at:
+            raise ValueError("Turn deadline must be after turn start")
+
+        self.current_turn_id = turn_id
+        self.current_turn_started_at = started_at
+        self.current_turn_deadline_at = deadline_at
+        self.turn_resolved = False
+        self.current_guess_options = []
+
+    def is_active_turn(self,turn_id: str | None) -> bool:
+        return (
+            turn_id is not None and turn_id == self.current_turn_id and not self.turn_resolved and self.state == RoomState.IN_PROGRESS and self.get_current_player() is not None
+        )
+
+    def resolve_turn(self,turn_id:str | None) -> bool:
+        if not self.is_active_turn(turn_id):
+            return False
+
+        self.turn_resolved = True
+        return True
     
     def advance_turn(self) -> None:
         """
@@ -209,17 +241,13 @@ class GameRoom:
         )
     # --- Word Submission ----
 
-    def submit_word(self,player_id:str,word:str,time_remaining_seconds:float,word_is_valid_fn) -> dict:
-        """
-        word_is_valid_fn: callable(word: str) -> tuple[bool, str | None]
-            Returns (True, None) if valid, or (False, reason) if not, where
-            reason is one of: "too_short", "already_used", "not_a_word", "profanity"
-            This is injected so game logic never touches the network/dictionary
-            directly — see validation.py (built separately) for the real implementation.
+    def submit_word(self,player_id:str,word:str,turn_deadline_at:float | None,word_is_valid_fn) -> dict:
 
-        Returns a dict matching CONTRACT.md's WordResult shape.
-        """
+        if not self.is_current_turn(player_id):
+            return {"accepted":False,"reasion_if_rejected":"out_of_turn"}
 
+        if turn_deadline_at is None or time.time() >= turn_deadline_at:
+            return {"accepted":False,"reason_if_rejected":"turn_expired"}
         if not self.is_current_turn(player_id):
             return {"accepted": False, "reason_if_rejected":"out_of_turn"}
         
@@ -253,12 +281,21 @@ class GameRoom:
         is_valid, reason = word_is_valid_fn(normalized)
         if not is_valid:
             return {"accepted":False,"reason_if_rejected":reason}
+
+        now = time.time()
+        if turn_deadline_at is None or now >= turn_deadline_at:
+            return {"accepted":False,"reason_if_rejected":"turn_expired"}
         
         # Word accepted - record it and score the turn.
         from game.rules import calculate_score
 
         self.used_words.add(normalized)
-        score_gained = calculate_score(normalized,time_remaining_seconds, self.turn_timer_seconds)
+        time_remaining_seconds = max(0.0,turn_deadline_at-now)
+        score_gained = calculate_score(
+            normalized,
+            time_remaining_seconds,
+            self.turn_timer_seconds
+        )
 
         player = self.players[player_id]
         player.score += score_gained
@@ -335,7 +372,9 @@ class GameRoom:
             "current_turn_index": self.current_turn_index,
             "previous_word": self.previous_word,
             "previous_turn_player_id": self.previous_turn_player_id,
+            "current_turn_id":self.current_turn_id,
             "current_turn_started_at": self.current_turn_started_at,
+            "current_turn_deadline_at":self.current_turn_deadline_at,
             "turn_resolved": self.turn_resolved,
             "required_letter":self.required_letter,
             "current_guess_options": self.current_guess_options,
@@ -361,7 +400,9 @@ class GameRoom:
         room.current_turn_index = data["current_turn_index"]
         room.previous_word = data["previous_word"]
         room.previous_turn_player_id = data["previous_turn_player_id"]
+        room.current_turn_id = data.get("current_turn_id")
         room.current_turn_started_at = data["current_turn_started_at"]
+        room.current_turn_deadline_at = data.get("current_turn_deadline_at")
         room.required_letter = data["required_letter"]
         room.turn_resolved = data["turn_resolved"]
         room.current_guess_options = data["current_guess_options"]

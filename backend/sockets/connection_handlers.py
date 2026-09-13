@@ -95,6 +95,19 @@ def handle_reconnect(data):
             "player_state": player.to_private_dict(),
         }, to=request.sid)
 
+def _resolve_turn_for_removed_player(room, player_id):
+    if not room.is_current_turn(player_id):
+        return
+
+    turn_id = room.current_turn_id
+    if not room.resolve_turn(turn_id):
+        return
+
+    room.previous_word = None
+    room.previous_turn_player_id = None
+
+    from sockets.turn_handlers import _finish_turn
+    _finish_turn(room)
 
 @socketio.on("leave_room")
 def handle_leave_room(data=None):
@@ -149,12 +162,7 @@ def handle_leave_room(data=None):
                 return
 
             if room.is_current_turn(player_id):
-                room.turn_resolved = True
-                room.previous_word = None
-                room.previous_turn_player_id = None
-                
-                from sockets.turn_handlers import _finish_turn
-                _finish_turn(room)
+                _resolve_turn_for_removed_player(room,player_id)
 
 
 @socketio.on("disconnect")
@@ -201,6 +209,7 @@ def _grace_period_watch(room_code: str, player_id: str):
         if player.connection_state == PlayerConnectionState.GRACE_PERIOD:
             player.connection_state = PlayerConnectionState.KICKED
             player.is_eliminated = True
+
             socketio.emit("player_kicked", {
                 "player_id": player_id,
                 "reason": "grace_period_expired",
@@ -214,6 +223,10 @@ def _grace_period_watch(room_code: str, player_id: str):
             if end_result is not None:
                 room.state = RoomState.FINISHED
                 socketio.emit("game_ended", end_result, room=room_code)
+
+            if room.is_current_turn(player_id):
+                _resolve_turn_for_removed_player(room,player_id)
+                return
 
 
 @socketio.on("submit_feedback")
