@@ -171,6 +171,13 @@ function renderJoinCreateForms(container: HTMLElement): void {
         <div class="flex flex-wrap items-center justify-center gap-2 md:gap-4 font-semibold">
           <button id="footer-about-btn" class="btn-ghost text-xs text-gray-400 hover:text-violet-300">ℹ️ About Us</button>
           <span class="text-gray-600">•</span>
+          <a
+            href="/how-to-play"
+            class="btn-ghost text-xs text-gray-400 hover:text-violet-300"
+          >
+            📖 How to Play
+          </a>
+          <span class="text-gray-600">•</span>
           <button id="footer-privacy-btn" class="btn-ghost text-xs text-gray-400 hover:text-violet-300">🛡️ Privacy Policy</button>
           <span class="text-gray-600">•</span>
           <button id="footer-contact-btn" class="btn-ghost text-xs text-gray-400 hover:text-violet-300">📬 Contact Support</button>
